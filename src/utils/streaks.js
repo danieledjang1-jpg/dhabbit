@@ -1,0 +1,10 @@
+import {dateKey,fromKey,shiftDate} from './dates.js';
+export const isScheduled = (habit, date) => { const day=new Date(date).getDay(); if(habit.frequency==='daily') return true; if(habit.frequency==='weekly') return (habit.weekdays||[]).includes(day); return (habit.weekdays||[]).includes(day); };
+export const isCompleted = (habit,key) => (habit.completions||[]).includes(key);
+export function currentStreak(habit, now=new Date()) { let cursor=new Date(now); const today=dateKey(cursor); if(!isScheduled(habit,cursor)) { /* find most recent scheduled day */ while(!isScheduled(habit,cursor)) cursor=shiftDate(cursor,-1); } else if(!isCompleted(habit,today)) { // Today remains in progress; anchor at yesterday if not complete.
+ cursor=shiftDate(cursor,-1); while(!isScheduled(habit,cursor)) cursor=shiftDate(cursor,-1);
+ }
+ let count=0, guard=0; while(guard++<4000) { const key=dateKey(cursor); if(isScheduled(habit,cursor)) { if(!isCompleted(habit,key)) break; count++; } cursor=shiftDate(cursor,-1); } return count; }
+export function longestStreak(habit) { const completed=[...(habit.completions||[])].sort(); if(!completed.length)return 0; let best=0,run=0,previous=null; for(const key of completed){const d=fromKey(key); if(!isScheduled(habit,d))continue; if(previous===null){run=1;} else {let cursor=shiftDate(fromKey(previous),1); while(!isScheduled(habit,cursor)&&dateKey(cursor)!==key)cursor=shiftDate(cursor,1); run=dateKey(cursor)===key?run+1:1;} best=Math.max(best,run);previous=key;} return best; }
+export function completionRate(habits, start, end) { let due=0,done=0; for(const h of habits.filter(x=>!x.archived)){for(let d=new Date(start);dateKey(d)<=dateKey(end);d=shiftDate(d,1)){if(isScheduled(h,d)){due++;if(isCompleted(h,dateKey(d)))done++;}}} return due?Math.round(done/due*100):0; }
+export function dailyProgress(habits,date=new Date()){const due=habits.filter(h=>!h.archived&&isScheduled(h,date));const completed=due.filter(h=>isCompleted(h,dateKey(date)));return {total:due.length,completed:completed.length,percent:due.length?Math.round(completed.length/due.length*100):0};}

@@ -1,0 +1,14 @@
+import React,{createContext,useContext,useEffect,useMemo,useState} from 'react';import {storage} from '../services/storageService.js';import * as authService from '../services/authService.js';import {dateKey} from '../utils/dates.js';
+const C=createContext(null);export const useApp=()=>useContext(C);
+export function AppProvider({children}){const [user,setUser]=useState(null);const [habits,setHabits]=useState([]);const [prefs,setPrefs]=useState({});const [toast,setToast]=useState(null);const [loading,setLoading]=useState(true);
+useEffect(()=>{const session=storage.getSession();if(session?.id){const u=authService.getAccounts().find(x=>x.id===session.id);if(u){setUser(u);setHabits(storage.getData()[u.id]?.habits||[]);setPrefs(storage.getPrefs()[u.id]||{});}}setLoading(false);},[]);
+useEffect(()=>{if(!toast)return;const t=setTimeout(()=>setToast(null),3000);return()=>clearTimeout(t);},[toast]);
+const notify=(message,type='success')=>setToast({message,type});
+const persistHabits=(next)=>{setHabits(next);if(user){const all=storage.getData();all[user.id]={...(all[user.id]||{}),habits:next};storage.setData(all);}};
+const signIn=async u=>{storage.setSession({id:u.id,at:Date.now()});setUser(u);setHabits(storage.getData()[u.id]?.habits||[]);setPrefs(storage.getPrefs()[u.id]||{});};
+const signOut=()=>{storage.setSession(null);setUser(null);setHabits([]);setPrefs({});};
+const createAccount=async fields=>{const u=await authService.register(fields);await signIn(u);return u;};const login=async fields=>{const u=await authService.login(fields.email,fields.password);await signIn(u);return u;};
+const saveHabit=(input,id)=>{if(!user) return;let next;if(id){next=habits.map(h=>h.id===id?{...h,...input,completions:h.completions||[]}:h);}else{const habit={id:crypto.randomUUID?.()||`${Date.now()}`,ownerId:user.id,...input,createdAt:dateKey(),completions:[],archived:false};next=[habit,...habits];}persistHabits(next);notify(id?'Habit updated':'Habit created');};
+const deleteHabit=id=>{persistHabits(habits.filter(h=>h.id!==id));notify('Habit deleted');};const toggleComplete=(id,key=dateKey())=>{const h=habits.find(x=>x.id===id);if(!h)return;const completions=h.completions||[];const nextCompletions=completions.includes(key)?completions.filter(x=>x!==key):[...completions,key].sort();persistHabits(habits.map(x=>x.id===id?{...x,completions:nextCompletions}:x));notify(completions.includes(key)?'Completion undone':'Habit completed');};
+const updatePrefs=patch=>{const next={...prefs,...patch};setPrefs(next);if(user){const all=storage.getPrefs();all[user.id]=next;storage.setPrefs(all);}};
+const value=useMemo(()=>({user,habits,prefs,toast,loading,notify,createAccount,login,signOut,signIn,saveHabit,deleteHabit,toggleComplete,updatePrefs,setToast}),[user,habits,prefs,toast,loading]);return <C.Provider value={value}>{children}</C.Provider>}

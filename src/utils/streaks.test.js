@@ -1,0 +1,5 @@
+import test from 'node:test';import assert from 'node:assert/strict';import {dateKey} from './dates.js';import {isScheduled,currentStreak,longestStreak,dailyProgress} from './streaks.js';
+test('daily schedule always includes every weekday',()=>{assert.equal(isScheduled({frequency:'daily'},new Date(2026,0,4,12)),true)});
+test('selected weekday schedule respects JS weekday values',()=>{assert.equal(isScheduled({frequency:'weekly',weekdays:[1]},new Date(2026,0,5,12)),true);assert.equal(isScheduled({frequency:'weekly',weekdays:[1]},new Date(2026,0,6,12)),false)});
+test('daily progress uses scheduled habits and real completion keys',()=>{const d=new Date(2026,0,5,12);const k=dateKey(d);assert.deepEqual(dailyProgress([{frequency:'daily',completions:[k]},{frequency:'daily',completions:[]}],d),{total:2,completed:1,percent:50})});
+test('current and longest streak use stored completion history',()=>{const today=new Date(2026,0,5,12);const h={frequency:'daily',completions:['2026-01-03','2026-01-04','2026-01-05']};assert.equal(currentStreak(h,today),3);assert.equal(longestStreak(h),3)});

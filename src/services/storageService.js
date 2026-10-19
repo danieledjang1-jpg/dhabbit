@@ -1,0 +1,3 @@
+const USERS='dhabbit_users_v1', SESSION='dhabbit_session_v1', DATA='dhabbit_data_v1', PREFS='dhabbit_preferences_v1';
+const safeParse=(key,fallback)=>{try{const raw=localStorage.getItem(key);return raw?JSON.parse(raw):fallback}catch{return fallback}};
+export const storage={getUsers:()=>safeParse(USERS,[]),setUsers:v=>localStorage.setItem(USERS,JSON.stringify(v)),getSession:()=>safeParse(SESSION,null),setSession:v=>v?localStorage.setItem(SESSION,JSON.stringify(v)):localStorage.removeItem(SESSION),getData:()=>safeParse(DATA,{}),setData:v=>localStorage.setItem(DATA,JSON.stringify(v)),getPrefs:()=>safeParse(PREFS,{}),setPrefs:v=>localStorage.setItem(PREFS,JSON.stringify(v)),keys:{USERS,SESSION,DATA,PREFS}};
